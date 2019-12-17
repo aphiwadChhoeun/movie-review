@@ -17,7 +17,8 @@
                 <Label text="Casts"/>
                 <ScrollView orientation="horizontal" height="200">
                     <StackLayout orientation="horizontal">
-                        <FlexboxLayout v-for="item in credits" class="credit__item" flexDirection="column">
+                        <FlexboxLayout v-for="item in credits" class="credit__item" flexDirection="column"
+                                       @longPress="onActorLongPress(item)">
                             <Image stretch="aspectFit" :src="item.profile_path | imagePath" height="170"/>
                             <Label :text="item.name" class="actor-name"/>
                             <Label :text="item.character" class="character-name"/>
@@ -33,6 +34,9 @@
 
 <script>
     import axios from 'axios';
+
+    const Clipboard = require("nativescript-clipboard");
+    const Toast = require("nativescript-toast");
 
     export default {
         name: "Detail",
@@ -116,6 +120,14 @@
                     .finally(() => {
                         this.isLoading = false;
                     });
+            }
+        },
+        methods: {
+            onActorLongPress(actor) {
+                Clipboard.setText(actor.name).then(function () {
+                    console.log("OK, copied to the clipboard");
+                    Toast.makeText("Copied!").show();
+                })
             }
         }
     }
