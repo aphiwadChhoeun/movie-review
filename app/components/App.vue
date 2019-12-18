@@ -19,6 +19,7 @@
 <script>
     import axios from 'axios';
     import Detail from "./Detail";
+    import common from "./mixins/common";
 
     export default {
         data() {
@@ -27,19 +28,16 @@
                 trendingList: []
             }
         },
+        mixins: [common],
         filters: {
-            imagePath(value) {
-                return 'https://image.tmdb.org/t/p/w500' + value;
-            },
             rating(value) {
                 return value + '/10';
             }
         },
         created() {
-            axios.get('https://api.themoviedb.org/3/trending/all/day?api_key=' + this.$store.state.apiKey)
+            axios.get('https://api.themoviedb.org/3/trending/all/week?api_key=' + this.$store.state.apiKey)
                 .then(resp => resp.data.results)
                 .then((result) => {
-                    console.log(result);
                     this.isLoading = false;
                     this.trendingList = result;
                 })
@@ -58,11 +56,6 @@
 </script>
 
 <style scoped>
-    .loading__indicator {
-        width: 40;
-        margin: 0 auto;
-    }
-
     .list__item__title {
         font-size: 18;
         background: rgba(83, 186, 130, .5);

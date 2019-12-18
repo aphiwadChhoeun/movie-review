@@ -5,20 +5,24 @@
             <StackLayout>
                 <ActivityIndicator busy="true" class="loading__indicator" v-if="isLoading"></ActivityIndicator>
                 <Label :text="title" class="title"/>
-                <Label :text="airDate"/>
+                <Label :text="`Release Date: ${airDate}`"/>
+                <Label :text="runtime | timeFormat" v-if="runtime"/>
                 <Label :text="type | uppercase"/>
                 <Label :text="tagline" class="tagline" v-if="tagline"/>
                 <Label :text="overview" textWrap="true" class="overview"/>\
                 <AbsoluteLayout>
                     <Image :src="poster | imagePath" stretch="aspectFit" width="100%"/>
-                    <Label :text="rating | rating" class="rating"/>
+                    <AbsoluteLayout class="rating-panel"></AbsoluteLayout>
+                    <CircularProgressBar :size="45" :progress="rating * 10">
+                        <Label :text="`${rating * 10}%`" marginTop="12" marginLeft="10"></Label>
+                    </CircularProgressBar>
                 </AbsoluteLayout>
 
                 <Label text="Casts"/>
                 <ScrollView orientation="horizontal" height="200">
                     <StackLayout orientation="horizontal">
                         <FlexboxLayout v-for="item in credits" class="credit__item" flexDirection="column"
-                                       @longPress="onActorLongPress(item)">
+                                       @tap="onActorTap(item)">
                             <Image stretch="aspectFit" :src="item.profile_path | imagePath" height="170"/>
                             <Label :text="item.name" class="actor-name"/>
                             <Label :text="item.character" class="character-name"/>
@@ -34,9 +38,9 @@
 
 <script>
     import axios from 'axios';
-
-    const Clipboard = require("nativescript-clipboard");
-    const Toast = require("nativescript-toast");
+    import People from "./People";
+    import CircularProgressBar from "./libs/CircularProgressBar";
+    import common from "./mixins/common";
 
     export default {
         name: "Detail",
@@ -44,10 +48,11 @@
             id: Number,
             type: String
         },
+        components: {
+            CircularProgressBar
+        },
+        mixins: [common],
         filters: {
-            imagePath(value) {
-                return 'https://image.tmdb.org/t/p/w500' + value;
-            },
             capitalize(value) {
                 if (!value) return '';
                 value = value.toString();
@@ -58,6 +63,11 @@
             },
             rating(value) {
                 return value + '/10';
+            },
+            timeFormat(value) {
+                let hour = parseInt(value / 60);
+                let minute = parseInt(value % 60);
+                return `Runtime: ${hour}h ${minute}m`;
             }
         },
         computed: {
@@ -68,11 +78,12 @@
         data() {
             return {
                 isLoading: true,
-                title: '',
-                airDate: '',
-                tagline: '',
-                overview: '',
-                poster: '',
+                title: null,
+                airDate: null,
+                tagline: null,
+                overview: null,
+                poster: null,
+                runtime: null,
                 rating: 0,
                 genres: [],
                 credits: []
@@ -90,6 +101,7 @@
                         this.genres = result.genres;
                         this.airDate = result.release_date;
                         this.rating = result.vote_average;
+                        this.runtime = result.runtime;
 
                         axios.get('https://api.themoviedb.org/3/movie/' + this.id + '/credits?api_key=' + this.$store.state.apiKey)
                             .then(resp => resp.data)
@@ -123,21 +135,18 @@
             }
         },
         methods: {
-            onActorLongPress(actor) {
-                Clipboard.setText(actor.name).then(function () {
-                    console.log("OK, copied to the clipboard");
-                    Toast.makeText("Copied!").show();
-                })
+            onActorTap(actor) {
+                this.$navigateTo(People, {
+                    props: {
+                        id: actor.credit_id
+                    }
+                });
             }
         }
     }
 </script>
 
 <style scoped>
-    Label {
-        color: #ffffff;
-    }
-
     .title {
         font-size: 28;
         font-weight: bold;
@@ -151,17 +160,19 @@
         margin-top: 20;
     }
 
-    .rating {
-        font-size: 18;
-        background: rgba(255, 255, 255, .5);
-        color: #050505;
-        padding-left: 5;
-        padding-right: 5;
+    .rating-panel {
+        width: 100%;
+        height: 100;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, .5), transparent);
     }
 
     .credit__item {
         margin-right: 10;
         margin-left: 10;
+    }
+
+    .actor-name {
+        font-weight: bold;
     }
 
     .character-name {
